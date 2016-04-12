@@ -1,3 +1,5 @@
+import numpy as np
+
 def measurement(Bz,t):
     """
     returns either +1 or -1 with probability determined by the model for qubit evolution
@@ -18,8 +20,35 @@ def measurement(Bz,t):
     else:
         x = -1
     return x
-
-def measurementDrift(Bz,t,k):
+    
+def measurementVoltage(Bz,t):
+    """
+    returns a voltage value from a Gaussian peak based on the qubit state measurement.
+    The qubit state measurement is determined by the model for qubit evolution
+    and projective measurement.
+    
+    Parameters:
+        Bz: Initial value of DeltaBz in the model (in MHz)
+        t: evolution time between state preparation and measurement (in nanoseconds)
+    """
+    alpha=0.25
+    beta=0.67
+    Smean = 4.5
+    Sstd = 0.3
+    Tmean = 5.5
+    Tstd = 0.3
+    
+    BzHertz = Bz*10**6
+    tseconds = t*10**(-9)
+    pPlus = 1/2*(1+(alpha+beta*np.cos(2*pi*BzHertz*tseconds)))
+    x = np.random.rand(1)[0]
+    if (pPlus > x):
+        voltage = np.random.norm(Smean,Sstd)
+    else:
+        voltage = np.random.norm(Tmean,Tstd)
+    return voltage
+    
+def measurementDrift(Bz,t,drift,k):
     """
     returns either +1 or -1 with probability determined by the model for qubit evolution
     and projective measurement
@@ -27,17 +56,18 @@ def measurementDrift(Bz,t,k):
     Parameters:
         Bz: Initial value of DeltaBz in the model (in MHz)
         t: evolution time between state preparation and measurement (in nanoseconds)
+        drift: rate of drift of DeltaBz in kHz/us
         k: measurement index
     """
     alpha=0.25
     beta=0.67
-    drift = 2.5*10**8 #units of Hz/s
+    driftHzs = drift*10**7 #units of Hz/s
     timePerMeasurement = 4*10**(-6)
     
     BzHertz = Bz*10**6
     tseconds = t*10**(-9)
     
-    BzCurrent = BzHertz + drift*timePerMeasurement*(k-1)
+    BzCurrent = BzHertz + driftHzs*timePerMeasurement*(k-1)
     pPlus = 1/2*(1+(alpha+beta*np.cos(2*pi*BzCurrent*tseconds)))
     x = np.random.rand(1)[0]
     if (pPlus > x):
@@ -45,7 +75,7 @@ def measurementDrift(Bz,t,k):
     else:
         x = -1
     return x
-
+    
 def randomWalk(Bz):
     """
     returns a vector with Bz values that have diffused over time. Each step is 1 microsecond
@@ -65,19 +95,20 @@ def randomWalk(Bz):
         BzDiffused[t] = np.random.normal(BzDiffused[t-1], sigma)
     return BzDiffused
     
-def measurementDriftDiffusion(BzDiffused,t,k):
+def measurementDriftDiffusion(BzDiffused,t,drift,k):
     """
     returns either +1 or -1 with probability determined by the model for qubit evolution
     and projective measurement
     
     Parameters:
-        BzDiffued: A vector of Bz values at 1 microsecond increments(in MHz)
+        BzDiffused: A vector of Bz values at 1 microsecond increments(in MHz)
         t: evolution time between state preparation and measurement (in nanoseconds)
+        drift: rate of drift of DeltaBz in kHz/us
         k: measurement index
     """
     alpha=0.25
     beta=0.67
-    drift = 2.5*10**8 #units of Hz/s
+    driftHzs = drift*10**7 #units of Hz/s
     timePerMeasurement = 4*10**(-6)
     
     
@@ -85,7 +116,7 @@ def measurementDriftDiffusion(BzDiffused,t,k):
                                     # since a measurement takes 4 microseconds
     tseconds = t*10**(-9)
     
-    BzCurrent = BzHertz + drift*timePerMeasurement*(k-1)
+    BzCurrent = BzHertz + driftHzs*timePerMeasurement*(k-1)
     pPlus = 1/2*(1+(alpha+beta*np.cos(2*pi*BzCurrent*tseconds)))
     x = np.random.rand(1)[0]
     if (pPlus > x):
