@@ -9,6 +9,6 @@ setup(name='model',
       license='Kevin Shain',
       packages=['model'],
       install_requires=[
-          'numpy',
+          'numpy'
       ],
       zip_safe=False)
