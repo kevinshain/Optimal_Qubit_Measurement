@@ -62,7 +62,7 @@ def measurementDrift(Bz,t,drift,k):
     """
     alpha=0.25
     beta=0.67
-    driftHzs = drift*10**7 #units of Hz/s
+    driftHzs = drift*10**9 #units of Hz/s
     timePerMeasurement = 4*10**(-6)
     
     BzHertz = Bz*10**6
@@ -109,7 +109,7 @@ def measurementDriftDiffusion(BzDiffused,t,drift,k):
     """
     alpha=0.25
     beta=0.67
-    driftHzs = drift*10**7 #units of Hz/s
+    driftHzs = drift*10**9 #units of Hz/s
     timePerMeasurement = 4*10**(-6)
     
     

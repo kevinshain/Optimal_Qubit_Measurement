@@ -1,6 +1,6 @@
 import unittest
 
-import model
+from qubitparameterestimation import model
 import numpy as np
 
 
@@ -11,7 +11,7 @@ class TestModel(unittest.TestCase):
         t = 100
         k = 50
         BzDiffused = model.randomWalk(Bz)
-        output = model.measurementDriftDiffusion(BzDiffused,t,k)
+        output = model.measurementDriftDiffusion(BzDiffused,t,25,k)
         self.assertTrue(output in [-1,1])
         
         
