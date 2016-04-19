@@ -68,7 +68,7 @@ def measurementDrift(Bz,t,drift,k):
     BzHertz = Bz*10**6
     tseconds = t*10**(-9)
     
-    BzCurrent = BzHertz + driftHzs*timePerMeasurement*(k-1)
+    BzCurrent = BzHertz - driftHzs*timePerMeasurement*(k-1)
     pPlus = 1/2*(1+(alpha+beta*np.cos(2*pi*BzCurrent*tseconds)))
     x = np.random.rand(1)[0]
     if (pPlus > x):
@@ -117,7 +117,7 @@ def measurementDriftDiffusion(BzDiffused,t,drift,k):
                                     # since a measurement takes 4 microseconds
     tseconds = t*10**(-9)
     
-    BzCurrent = BzHertz + driftHzs*timePerMeasurement*(k-1)
+    BzCurrent = BzHertz - driftHzs*timePerMeasurement*(k-1)
     pPlus = 1/2*(1+(alpha+beta*np.cos(2*pi*BzCurrent*tseconds)))
     x = np.random.rand(1)[0]
     if (pPlus > x):
@@ -125,3 +125,26 @@ def measurementDriftDiffusion(BzDiffused,t,drift,k):
     else:
         x = -1
     return x
+
+def likelihood(MetaSeries,Bz):
+    alpha = MetaSeries.alpha
+    beta = MetaSeries.beta
+    drift = MetaSeries.drift*10**9
+    diffusion = MetaSeries.diffusion*10**(-6)
+    BzHertz = Bz*10**6
+    
+    timePerMeasurement = 4*10**(-6)
+    
+    likelihood=1
+    
+    for i in range(len(MetaSeries)):
+        k = MetaSeries[i,0]+1
+        tk = MetaSeries[i,1]*10**(-9)
+        mk = MetaSeries[i,2]
+        
+        BzCurrent = BzHertz - drift*timePerMeasurement*(k+1)
+        sigma = np.sqrt(2*diffusion*4*k)
+        
+        likelihoodmk = 1/2*beta*mk*sigma*np.exp(-(2*pi*tk)**2*sigma**2/2)*np.cos(2*pi*BzCurrent*tk)+(1+mk*alpha)/2
+        likelihood = likelihood*likelihoodmk
+    return likelihood
