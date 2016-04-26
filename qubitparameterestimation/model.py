@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import pi
+import matplotlib.pyplot as plt
 
 def measurement(Bz,t):
     """
@@ -148,3 +149,56 @@ def likelihood(MetaSeries,Bz):
         likelihoodmk = 1/2*beta*mk*sigma*np.exp(-(2*pi*tk)**2*sigma**2/2)*np.cos(2*pi*BzCurrent*tk)+(1+mk*alpha)/2
         likelihood = likelihood*likelihoodmk
     return likelihood
+
+def getCoefs(MetaSeries):
+    """
+    returns Fourier coefficients of the likelihood function from a series of measurements.
+    This is a discrete Fourier series, but exactly equals the actual likelihood. Essentially,
+    it turns a product of cosines into a sum of cosines and sines.
+    
+    Parameters:
+        MetaSeries
+    """
+    
+    alpha = MetaSeries.alpha
+    beta = MetaSeries.beta
+    drift = MetaSeries.drift*10**9
+    diffusion = MetaSeries.diffusion*10**12
+    minMeasureTime = 10*10**(-9)
+    timePerMeasurement = 4*10**(-6)
+    
+    c = np.zeros((MetaSeries.shape[0],20001), dtype=complex)
+    c[0,10000]=1 # This is like setting a uniform prior
+
+    m = MetaSeries[:,2]
+    mtimes = MetaSeries[:,1]
+    for k in range(1,MetaSeries.shape[0]):
+        n = mtimes[k]
+        for i in range(c.shape[1]):
+            if (((i+n)<c.shape[1]) and ((i-n)>0)):
+                c[k,i] = np.exp(-diffusion*((i-10000)*minMeasureTime)**2*timePerMeasurement+drift*(i-10000)*minMeasureTime*timePerMeasurement*1j)*\
+                ((1+m[k]*alpha)*c[k-1,i]+1/2*m[k]*beta*(c[k-1,i+n]+c[k-1,i-n]))
+            elif(((i+n)<c.shape[1])):
+                c[k,i] = np.exp(-diffusion*((i-10000)*minMeasureTime)**2*timePerMeasurement+drift*(i-10000)*minMeasureTime*timePerMeasurement*1j)*\
+                ((1+m[k]*alpha)*c[k-1,i]+1/2*m[k]*beta*(c[k-1,i+n]))  
+            else:
+                c[k,i] = np.exp(-diffusion*((i-10000)*minMeasureTime)**2*timePerMeasurement+drift*(i-10000)*minMeasureTime*timePerMeasurement*1j)*\
+                ((1+m[k]*alpha)*c[k-1,i]+1/2*m[k]*beta*c[k-1,i-n])
+    return c
+
+def posterior(coefs,Bzmin,Bzmax,points):
+    """
+    returns the posterior for the range of DeltaBz values
+    
+    Parameters:
+        coefs
+        Bzmin
+        Bzmax
+        points
+    """
+    sums=np.ones(points)*np.real(coefs[-1,10000])/2
+    Bz = np.linspace(Bzmin,Bzmax,points)
+    for j in range(len(Bz)):
+        for i in range(0,coefs.shape[1]):
+            sums[j] = sums[j] + (np.real(coefs[-1,i])*np.cos(2*pi*Bz[j]*10**6*(i-10000)*10*10**(-9))) - np.imag(coefs[-1,i])*np.sin(2*pi*Bz[j]*10**6*(i-10000)*10*10**(-9))
+    plt.plot(Bz,sums)
