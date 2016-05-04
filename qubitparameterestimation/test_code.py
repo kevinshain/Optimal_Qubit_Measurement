@@ -11,7 +11,8 @@ class TestModel(unittest.TestCase):
         Bz = 60
         t = 100
         k = 50
-        BzDiffused = model.randomWalk(Bz)
+        diffusion = 6.7
+        BzDiffused = model.randomWalk(Bz,diffusion)
         output = model.measurementDriftDiffusion(BzDiffused,t,25,k)
         self.assertTrue(output in [-1,1])
 
