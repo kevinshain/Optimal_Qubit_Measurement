@@ -181,19 +181,6 @@ def getCoefs(MetaSeries):
 
     ms = MetaSeries[:,2]
     mtimes = MetaSeries[:,1]/10
- #    for k in range(1,MetaSeries.shape[0]):
-#         n = mtimes[k]
-#         m = ms[k]
-#         for i in range(c.shape[1]):
-#             if (((i+n)<c.shape[1]) and ((i-n)>0)):
-#                 c[k,i] = np.exp(-diffusion*((i-10000)*2*np.pi*minMeasureTime)**2*timePerMeasurement+drift*(i-10000)*2*np.pi*minMeasureTime*timePerMeasurement*1j)*\
-#                 ((1+m*alpha)*c[k-1,i]+1/2*m*beta*(c[k-1,i+n]+c[k-1,i-n]))
-#             elif(((i+n)<c.shape[1])):
-#                 c[k,i] = np.exp(-diffusion*((i-10000)*2*np.pi*minMeasureTime)**2*timePerMeasurement+drift*(i-10000)*2*np.pi*minMeasureTime*timePerMeasurement*1j)*\
-#                 ((1+m*alpha)*c[k-1,i]+1/2*m*beta*(c[k-1,i+n]))  
-#             else:
-#                 c[k,i] = np.exp(-diffusion*((i-10000)*2*np.pi*minMeasureTime)**2*timePerMeasurement+drift*(i-10000)*2*np.pi*minMeasureTime*timePerMeasurement*1j)*\
-#                 ((1+m*alpha)*c[k-1,i]+1/2*m*beta*c[k-1,i-n])
     diffusionVector = np.array( [np.exp(-diffusion*((i-10000)*2*np.pi*minMeasureTime)**2*timePerMeasurement) for i in range(c.shape[1])])
     driftVector = np.array( [np.exp(drift*(i-10000)*2*np.pi*minMeasureTime*timePerMeasurement*1j) for i in range(c.shape[1])])
            
@@ -275,41 +262,23 @@ def optimizedCoefs(length, alpha, beta, drift, diffusion, BzDiffused):
     diffusion = diffusion*10**12
     
             
-    if drift == 0:
-        c = np.zeros((length,10000))
-        c[0,0]=1
-        
-        diffusionVector = np.array( [np.exp(-diffusion*(i*2*np.pi*minMeasureTime)**2*timePerMeasurement) for i in range(c.shape[1])])
-        driftVector = np.array( [np.exp(drift*(i-10000)*2*np.pi*minMeasureTime*timePerMeasurement*1j) for i in range(c.shape[1])])
-        
-        m = np.empty(c.shape[0])
-        ns = np.empty(c.shape[0])
-        for k in range(1,c.shape[0]):
-            n = np.argmin([expVar(c[k-1,:],i,diffusionVector,alpha,beta) for i in range(1,100+2*k)])+1
-            ns[k] = n
-            print(k,':',n)
-            m[k] = measurementDriftDiffusion(BzDiffused,n*10,drift,k)
-            cplus = np.concatenate((c[k-1,1:n+1][::-1],c[k-1,:-n]))
-            cminus = np.concatenate((c[k-1,n:],c[k-1,-n-1:-1][::-1]))
-            c[k,:] = (1+m[k]*alpha)*c[k-1,:]+1/2*m[k]*beta*(cplus+cminus)
-            c[k,:] = np.multiply(c[k,:],diffusionVector)
-    else:
-        pass
-#       c = np.zeros((len(sequence),20001), dtype=complex)
-#       c[0,10000]=1 # This is like setting a uniform prior
-#   
-#       diffusionVector = np.array( [np.exp(-diffusion*(i*minMeasureTime)**2*timePerMeasurement) for i in range(c.shape[1])])
-#       driftVector = np.array( [np.exp(drift*(i-10000)*minMeasureTime*timePerMeasurement*1j) for i in range(c.shape[1])])
-#   
-#       m = np.empty(c.shape[0])   
-#       for k in range(1,c.shape[0]):
-#           n = sequence[k]
-#           m[k] = measurementDriftDiffusion(BzDiffused,n*10,drift,k)
-#           cplus = np.concatenate((c[k-1,1:n+1][::-1],c[k-1,:-n]))
-#           cminus = np.concatenate((c[k-1,n:],c[k-1,-n-1:-1][::-1]))
-#           c[k,:] = (1+m[k]*alpha)*c[k-1,:]+1/2*m[k]*beta*(cplus+cminus)
-#           c[k,:] = np.multiply(c[k,:],diffusionVector,driftVector)
-        
+    c = np.zeros((length,10000))
+    c[0,0]=1
+    
+    diffusionVector = np.array( [np.exp(-diffusion*(i*2*np.pi*minMeasureTime)**2*timePerMeasurement) for i in range(c.shape[1])])
+    driftVector = np.array( [np.exp(drift*(i-10000)*2*np.pi*minMeasureTime*timePerMeasurement*1j) for i in range(c.shape[1])])
+    
+    m = np.empty(c.shape[0])
+    ns = np.empty(c.shape[0])
+    for k in range(1,c.shape[0]):
+        n = np.argmin([expVar(c[k-1,:],i,diffusionVector,alpha,beta) for i in range(1,100+2*k)])+1
+        ns[k] = n
+        print(k,':',n)
+        m[k] = measurementDriftDiffusion(BzDiffused,n*10,drift,k)
+        cplus = np.concatenate((c[k-1,1:n+1][::-1],c[k-1,:-n]))
+        cminus = np.concatenate((c[k-1,n:],c[k-1,-n-1:-1][::-1]))
+        c[k,:] = (1+m[k]*alpha)*c[k-1,:]+1/2*m[k]*beta*(cplus+cminus)
+        c[k,:] = np.multiply(c[k,:],diffusionVector)
     return c
     
 def posterior(coefs,Bzmin,Bzmax,points):
@@ -328,6 +297,7 @@ def posterior(coefs,Bzmin,Bzmax,points):
         for i in range(0,coefs.shape[1]):
             sums[j] = sums[j] + (np.real(coefs[-1,i])*np.cos(2*pi*Bz[j]*10**6*(i-10000)*10*10**(-9))) - np.imag(coefs[-1,i])*np.sin(2*pi*Bz[j]*10**6*(i-10000)*10*10**(-9))
     plt.plot(Bz,sums)
+    return Bz[np.argmax(sums)]
 
 def Bzvariance(coefs):
     """
@@ -401,6 +371,6 @@ def getMSE(coefs,BzDiffused):
     """
     mse = np.empty(100)
     for i in range(coefs.shape[1]):
-        expBz = [model.expectedBz(coefs[j,i,:]) for j in range(coefs.shape[0])]
+        expBz = [expectedBz(coefs[j,i,:]) for j in range(coefs.shape[0])]
         mse[i] = np.mean(np.square(np.subtract(expBz,BzDiffused[4*i])))  
     return mse
